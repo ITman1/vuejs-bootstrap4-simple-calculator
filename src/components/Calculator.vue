@@ -20,7 +20,7 @@
 
 <script>
 export default {
-  name: 'Calculataor',
+  name: 'Calculator',
   data () {
     return {
       historyScreen: 'L1\nL2\nL3\nL4\nL5\nL6',
