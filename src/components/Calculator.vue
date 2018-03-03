@@ -159,6 +159,8 @@
           case InputStates.START_TYPING:
             this.currentValueString = '0';
             this.inputState = InputStates.START_FRACTIONAL_PART;
+            // We started to type new value so we do not care about previous result
+            if (this.operator == null) this.previousValue = null;
             break;
           case InputStates.TYPING_INTEGER_PART:
             this.inputState = InputStates.START_FRACTIONAL_PART;
