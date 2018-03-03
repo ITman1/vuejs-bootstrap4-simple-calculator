@@ -15,8 +15,8 @@
     },
     computed: {
       history() {
-        return this.items.join('\n')
+        return this.items.join('\n');
       }
     }
-  }
+  };
 </script>

@@ -1,8 +1,12 @@
-# Simple Calculator
+# VueJS Bootstrap 4 Simple Calculator
 
-> Simple calculator project
+> Simple calculator written in VueJS and Bootstrap 4
 
-## Build Setup
+## [DEMO PAGE](https://itman1.github.io/vuejs-bootstrap4-simple-calculator/dist/index.html)
+
+![screen](https://raw.githubusercontent.com/ITman1/vuejs-bootstrap4-simple-calculator/master/calc.PNG)
+
+## Build Instructions
 
 ``` bash
 # install dependencies

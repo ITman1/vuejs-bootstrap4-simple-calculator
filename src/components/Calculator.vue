@@ -7,35 +7,35 @@
              md="6" offset-md="3"
              lg="4" offset-lg="4">
         <b-row>
-          <calculator-history :items="history"></calculator-history>
+          <calculator-history :items="historyScreen"></calculator-history>
         </b-row>
         <b-row>
-          <calculator-screen :input="screenInput"></calculator-screen>
+          <calculator-screen :input="valueScreen"></calculator-screen>
         </b-row>
         <b-row class="no-gutters">
           <calculator-button @click="clearAll">AC</calculator-button>
           <calculator-button @click="negateInput">+/-</calculator-button>
           <div class="col-6"></div>
           <div class="w-100"></div>
-          <calculator-button @click="newDigit('7')">7</calculator-button>
-          <calculator-button @click="newDigit('8')">8</calculator-button>
-          <calculator-button @click="newDigit('9')">9</calculator-button>
-          <calculator-button @click="doOperation('/')">&divide;</calculator-button>
+          <calculator-button @click="appendDigit('7')">7</calculator-button>
+          <calculator-button @click="appendDigit('8')">8</calculator-button>
+          <calculator-button @click="appendDigit('9')">9</calculator-button>
+          <calculator-button @click="recordValueOrCalculate('/')">&divide;</calculator-button>
           <div class="w-100"></div>
-          <calculator-button @click="newDigit('4')">4</calculator-button>
-          <calculator-button @click="newDigit('5')">5</calculator-button>
-          <calculator-button @click="newDigit('6')">6</calculator-button>
-          <calculator-button @click="doOperation('*')">&times;</calculator-button>
+          <calculator-button @click="appendDigit('4')">4</calculator-button>
+          <calculator-button @click="appendDigit('5')">5</calculator-button>
+          <calculator-button @click="appendDigit('6')">6</calculator-button>
+          <calculator-button @click="recordValueOrCalculate('*')">&times;</calculator-button>
           <div class="w-100"></div>
-          <calculator-button @click="newDigit('1')">1</calculator-button>
-          <calculator-button @click="newDigit('2')">2</calculator-button>
-          <calculator-button @click="newDigit('3')">3</calculator-button>
-          <calculator-button @click="doOperation('-')">&ndash;</calculator-button>
+          <calculator-button @click="appendDigit('1')">1</calculator-button>
+          <calculator-button @click="appendDigit('2')">2</calculator-button>
+          <calculator-button @click="appendDigit('3')">3</calculator-button>
+          <calculator-button @click="recordValueOrCalculate('-')">&ndash;</calculator-button>
           <div class="w-100"></div>
-          <calculator-button @click="newDigit('0')">0</calculator-button>
-          <calculator-button @click="fraction">.</calculator-button>
+          <calculator-button @click="appendDigit('0')">0</calculator-button>
+          <calculator-button @click="startFractionPart">.</calculator-button>
           <calculator-button @click="calculate">=</calculator-button>
-          <calculator-button @click="doOperation('+')">+</calculator-button>
+          <calculator-button @click="recordValueOrCalculate('+')">+</calculator-button>
         </b-row>
       </b-col>
     </b-row>
@@ -43,28 +43,26 @@
 </template>
 
 <script>
-  import CalculatorButton from './CalculatorButton'
-  import CalculatorHistory from './CalculatorHistory'
-  import CalculatorScreen from './CalculatorScreen'
+  import CalculatorButton from './CalculatorButton';
+  import CalculatorHistory from './CalculatorHistory';
+  import CalculatorScreen from './CalculatorScreen';
 
-  const DISPLAY_LENGTH = 14
+  const DISPLAY_LENGTH = 14;
   const States = Object.freeze({
-    START_TYPING: Symbol('start'),
-    TYPING_INTEGER_PART: Symbol('integer'),
-    START_FRACTIONAL_PART: Symbol('start fraction'),
-    TYPING_FRACTIONAL_PART: Symbol('fraction'),
-    RESULT_AND_START_TYPING: Symbol('result'),
-    DIVISION_BY_ZERO: Symbol('Division by zero')
-  })
+    START_TYPING: Symbol('START_TYPING'),
+    TYPING_INTEGER_PART: Symbol('TYPING_INTEGER_PART'),
+    START_FRACTIONAL_PART: Symbol('START_FRACTIONAL_PART'),
+    TYPING_FRACTIONAL_PART: Symbol('TYPING_FRACTIONAL_PART')
+  });
   const Operators = Object.freeze({
     '-': (a, b) => a - b,
     '+': (a, b) => a + b,
     '*': (a, b) => a * b,
     '/': (a, b) => {
-      if (b === 0 || isNaN(b)) throw new Error('Division by zero')
-      return a / b
+      if (b === 0 || isNaN(b)) throw new Error('Division by zero');
+      return a / b;
     }
-  })
+  });
 
   export default {
     name: 'Calculator',
@@ -76,109 +74,117 @@
         previousValue: null,
         currentValueString: '0',
         state: States.START_TYPING
-      }
+      };
     },
     methods: {
       clearAll() {
-        this.history = []
-        this.operator = null
-        this.previousValue = null
-        this.currentValueString = '0'
-        this.state = States.START_TYPING
+        this.history = [];
+        this.operator = null;
+        this.previousValue = null;
+        this.currentValueString = '0';
+        this.state = States.START_TYPING;
       },
       negateInput() {
-        if (this.state === States.RESULT_AND_START_TYPING) {
-          this.previousValue = -this.previousValue
+        switch (this.state) {
+          case States.START_TYPING:
+            break; // No support for negation of calculated results
+          default:
+            this.currentValueString = this.currentValueString !== '0' ? this.formatResult(-parseFloat(this.currentValueString)) : this.currentValueString;
         }
-        const oldValue = this.currentValueString
-        this.currentValueString = this.currentValueString !== '0' ? this.formatResult(-parseFloat(this.currentValueString)) : this.currentValueString
-        this.history.unshift('neg(' + oldValue + ') = ' + this.currentValueString)
       },
-      newDigit(digit) {
-        const length = this.currentValueString.length
+      appendDigit(digit) {
+        const length = this.currentValueString.length;
 
         switch (this.state) {
-        case States.START_TYPING:
-        case States.RESULT_AND_START_TYPING:
-          this.state = States.TYPING_INTEGER_PART
-          this.currentValueString = digit
-          break
-        case States.START_FRACTIONAL_PART:
-          if (length < DISPLAY_LENGTH) {
-            this.currentValueString += '.' + digit
-            this.state = States.TYPING_FRACTIONAL_PART
-          }
-          break
-        case States.TYPING_INTEGER_PART:
-          if (this.currentValueString === '0' && digit === '0') break
-          if (length < DISPLAY_LENGTH) {
-            this.currentValueString += digit
-          }
-          break
-        case States.TYPING_FRACTIONAL_PART:
-          if (length < DISPLAY_LENGTH) {
-            this.currentValueString += digit
-          }
+          case States.START_TYPING:
+            this.state = States.TYPING_INTEGER_PART;
+            this.currentValueString = digit;
+            // We started to type new value so we do not care about previous result
+            if (this.operator == null) this.previousValue = null;
+            break;
+          case States.START_FRACTIONAL_PART:
+            if (length < DISPLAY_LENGTH) {
+              this.currentValueString += '.' + digit;
+              this.state = States.TYPING_FRACTIONAL_PART;
+            }
+            break;
+          case States.TYPING_INTEGER_PART:
+            if (this.currentValueString === '0' && digit === '0') break;
+            if (length < DISPLAY_LENGTH) {
+              this.currentValueString += digit;
+            }
+            break;
+          case States.TYPING_FRACTIONAL_PART:
+            if (length < DISPLAY_LENGTH) {
+              this.currentValueString += digit;
+            }
         }
       },
-      doOperation(op) {
-        if (this.state === States.START_TYPING) {
-          return
-        }
-
+      recordValueOrCalculate(op) {
         if (this.previousValue == null) {
-          this.previousValue = parseFloat(this.currentValueString)
-          this.state = States.RESULT_AND_START_TYPING
+          this.previousValue = parseFloat(this.currentValueString);
+          this.state = States.START_TYPING;
         } else {
-          this.calculate()
+          this.calculate();
         }
 
-        this.operator = op
+        this.operator = op;
       },
       calculate() {
-        if (this.previousValue != null && this.operator != null && this.state !== States.START_TYPING && this.state !== States.RESULT_AND_START_TYPING) {
-          this.state = States.RESULT_AND_START_TYPING
-          const operation = Operators[this.operator]
-          const currentValue = parseFloat(this.currentValueString)
-          try {
-            const result = operation(this.previousValue, currentValue)
-            this.history.unshift(this.formatResult(this.previousValue) + ' ' + this.operator + ' ' + this.currentValueString + ' = ' + this.formatResult(result))
-            this.currentValueString = this.formatResult(result)
-            this.previousValue = result
-            this.operator = null
-          } catch (ex) {
-            this.currentValueString = ex.message
-          }
+        switch (this.state) {
+          case States.START_TYPING:
+            break;
+          default:
+            if (this.previousValue != null && this.operator != null) {
+              this.state = States.START_TYPING;
+              const operation = Operators[this.operator];
+              const currentValue = parseFloat(this.currentValueString);
+              try {
+                const result = operation(this.previousValue, currentValue);
+                this.history.unshift(this.formatResult(this.previousValue) + ' ' + this.operator + ' ' + this.currentValueString + ' = ' + this.formatResult(result));
+                this.currentValueString = this.formatResult(result);
+                this.previousValue = result;
+                this.operator = null;
+              } catch (ex) {
+                this.currentValueString = ex.message;
+              }
+            }
         }
       },
-      fraction() {
+      startFractionPart() {
         switch (this.state) {
-        case States.START_TYPING:
-        case States.RESULT_AND_START_TYPING:
-          this.currentValueString = '0'
-          this.state = States.START_FRACTIONAL_PART
-          break
-        case States.TYPING_INTEGER_PART:
-          this.state = States.START_FRACTIONAL_PART
+          case States.START_TYPING:
+            this.currentValueString = '0';
+            this.state = States.START_FRACTIONAL_PART;
+            break;
+          case States.TYPING_INTEGER_PART:
+            this.state = States.START_FRACTIONAL_PART;
         }
       },
       formatResult(result) {
-        let semiResult = result + ''
-        if (semiResult.length > DISPLAY_LENGTH) {
+        let formatted = result + '';
+        if (formatted.length > DISPLAY_LENGTH) {
           for (let i = DISPLAY_LENGTH; i >= 0; i--) {
-            const adjustedResult = result.toPrecision(i)
-            if (adjustedResult.length <= DISPLAY_LENGTH) return adjustedResult
+            const adjustedResult = result.toPrecision(i);
+            if (adjustedResult.length <= DISPLAY_LENGTH) return adjustedResult;
           }
         }
-        return semiResult
+        return formatted;
       }
     },
     computed: {
-      screenInput() {
-        return this.currentValueString
+      historyScreen() {
+        let nextHistoryItem = this.previousValue != null && this.operator != null ? this.formatResult(this.previousValue) + this.operator : '';
+        nextHistoryItem += this.currentValueString != null && this.state !== States.START_TYPING ? this.currentValueString : '';
+
+        const historyClone = this.history.slice(0);
+        return (nextHistoryItem !== '') ? historyClone.unshift(nextHistoryItem) && historyClone : historyClone;
+      },
+      valueScreen() {
+        return this.currentValueString;
       }
     }
-  }
+  };
 </script>
 
 <style scoped>

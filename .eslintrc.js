@@ -24,8 +24,9 @@ module.exports = {
     // allow async-await
     'generator-star-spacing': 'off',
     'space-before-function-paren': 'off',
+    'semi': [2, 'always'],
     'indent': 'off',
-    'vue/script-indent': ['error', 2, { 'baseIndent': 1 }],
+    'vue/script-indent': ['error', 2, { 'baseIndent': 1 , "switchCase": 1}],
     // allow debugger during development
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
   }
