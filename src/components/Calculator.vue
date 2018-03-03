@@ -48,7 +48,7 @@
   import CalculatorScreen from './CalculatorScreen';
 
   const DISPLAY_LENGTH = 14;
-  const States = Object.freeze({
+  const InputStates = Object.freeze({
     START_TYPING: Symbol('START_TYPING'),
     TYPING_INTEGER_PART: Symbol('TYPING_INTEGER_PART'),
     START_FRACTIONAL_PART: Symbol('START_FRACTIONAL_PART'),
@@ -73,7 +73,7 @@
         operator: null,
         previousValue: null,
         currentValueString: '0',
-        state: States.START_TYPING
+        inputState: InputStates.START_TYPING
       };
     },
     methods: {
@@ -82,11 +82,11 @@
         this.operator = null;
         this.previousValue = null;
         this.currentValueString = '0';
-        this.state = States.START_TYPING;
+        this.inputState = InputStates.START_TYPING;
       },
       negateInput() {
-        switch (this.state) {
-          case States.START_TYPING:
+        switch (this.inputState) {
+          case InputStates.START_TYPING:
             break; // No support for negation of calculated results
           default:
             this.currentValueString = this.currentValueString !== '0' ? this.formatResult(-parseFloat(this.currentValueString)) : this.currentValueString;
@@ -95,20 +95,20 @@
       appendDigit(digit) {
         const length = this.currentValueString.length;
 
-        switch (this.state) {
-          case States.START_TYPING:
-            this.state = States.TYPING_INTEGER_PART;
+        switch (this.inputState) {
+          case InputStates.START_TYPING:
+            this.inputState = InputStates.TYPING_INTEGER_PART;
             this.currentValueString = digit;
             // We started to type new value so we do not care about previous result
             if (this.operator == null) this.previousValue = null;
             break;
-          case States.START_FRACTIONAL_PART:
+          case InputStates.START_FRACTIONAL_PART:
             if (length < DISPLAY_LENGTH) {
               this.currentValueString += '.' + digit;
-              this.state = States.TYPING_FRACTIONAL_PART;
+              this.inputState = InputStates.TYPING_FRACTIONAL_PART;
             }
             break;
-          case States.TYPING_INTEGER_PART:
+          case InputStates.TYPING_INTEGER_PART:
             if (this.currentValueString === '0') {
               this.currentValueString = digit;
               break;
@@ -117,29 +117,29 @@
               this.currentValueString += digit;
             }
             break;
-          case States.TYPING_FRACTIONAL_PART:
+          case InputStates.TYPING_FRACTIONAL_PART:
             if (length < DISPLAY_LENGTH) {
               this.currentValueString += digit;
             }
         }
       },
-      recordValueOrCalculate(op) {
+      recordValueOrCalculate(operator) {
         if (this.previousValue == null) {
           this.previousValue = parseFloat(this.currentValueString);
-          this.state = States.START_TYPING;
+          this.inputState = InputStates.START_TYPING;
         } else {
           this.calculate();
         }
 
-        this.operator = op;
+        this.operator = operator;
       },
       calculate() {
-        switch (this.state) {
-          case States.START_TYPING:
+        switch (this.inputState) {
+          case InputStates.START_TYPING:
             break;
           default:
             if (this.previousValue != null && this.operator != null) {
-              this.state = States.START_TYPING;
+              this.inputState = InputStates.START_TYPING;
               const operation = Operators[this.operator];
               const currentValue = parseFloat(this.currentValueString);
               try {
@@ -155,13 +155,13 @@
         }
       },
       startFractionPart() {
-        switch (this.state) {
-          case States.START_TYPING:
+        switch (this.inputState) {
+          case InputStates.START_TYPING:
             this.currentValueString = '0';
-            this.state = States.START_FRACTIONAL_PART;
+            this.inputState = InputStates.START_FRACTIONAL_PART;
             break;
-          case States.TYPING_INTEGER_PART:
-            this.state = States.START_FRACTIONAL_PART;
+          case InputStates.TYPING_INTEGER_PART:
+            this.inputState = InputStates.START_FRACTIONAL_PART;
         }
       },
       formatResult(result) {
@@ -178,13 +178,13 @@
     computed: {
       historyScreen() {
         let nextHistoryItem = this.previousValue != null && this.operator != null ? this.formatResult(this.previousValue) + this.operator : '';
-        nextHistoryItem += this.currentValueString != null && this.state !== States.START_TYPING ? this.currentValueString : '';
+        nextHistoryItem += this.inputState !== InputStates.START_TYPING ? this.valueScreen : '';
 
         const historyClone = this.history.slice(0);
         return (nextHistoryItem !== '') ? historyClone.unshift(nextHistoryItem) && historyClone : historyClone;
       },
       valueScreen() {
-        return this.currentValueString;
+        return this.currentValueString + (this.inputState === InputStates.START_FRACTIONAL_PART ? '.' : '');
       }
     }
   };
