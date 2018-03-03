@@ -109,7 +109,10 @@
             }
             break;
           case States.TYPING_INTEGER_PART:
-            if (this.currentValueString === '0' && digit === '0') break;
+            if (this.currentValueString === '0') {
+              this.currentValueString = digit;
+              break;
+            }
             if (length < DISPLAY_LENGTH) {
               this.currentValueString += digit;
             }
